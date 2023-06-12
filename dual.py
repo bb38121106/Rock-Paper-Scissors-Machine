@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-max_num_hands = 2
+max_num_hands = 6
 gesture = {
     0:'fist', 1:'one', 2:'two', 3:'three', 4:'four', 5:'five',
     6:'six', 7:'rock', 8:'spiderman', 9:'yeah', 10:'ok',
@@ -77,28 +77,69 @@ while cap.isOpened():
 
             mp_drawing.draw_landmarks(img, res, mp_hands.HAND_CONNECTIONS)
 
-            # Who wins?
-            if len(rps_result) >= 2:
-                winner = None
-                text = ''
-
-                if rps_result[0]['rps']=='rock':
-                    if rps_result[1]['rps']=='rock'     : text = 'Tie'
-                    elif rps_result[1]['rps']=='paper'  : text = 'Paper wins'  ; winner = 1
-                    elif rps_result[1]['rps']=='scissors': text = 'Rock wins'   ; winner = 0
-                elif rps_result[0]['rps']=='paper':
-                    if rps_result[1]['rps']=='rock'     : text = 'Paper wins'  ; winner = 0
-                    elif rps_result[1]['rps']=='paper'  : text = 'Tie'
-                    elif rps_result[1]['rps']=='scissors': text = 'Scissors wins'; winner = 1
-                elif rps_result[0]['rps']=='scissors':
-                    if rps_result[1]['rps']=='rock'     : text = 'Rock wins'   ; winner = 1
-                    elif rps_result[1]['rps']=='paper'  : text = 'Scissors wins'; winner = 0
-                    elif rps_result[1]['rps']=='scissors': text = 'Tie'
-
-                if winner is not None:
+        # Who wins?
+        if len(rps_result) >= 2:
+            winners = []
+            text = ''
+            
+            s = (3,len(rps_result))
+            rps_result_count = np.zeros(s)	
+            for i in range(0,len(rps_result)):
+                if rps_result[i]['rps']=='rock':
+                	rps_result_count[0][i] = 1
+                elif rps_result[i]['rps']=='paper':
+                	rps_result_count[1][i] = 1
+                elif rps_result[i]['rps']=='scissors':
+                	rps_result_count[2][i] = 1
+            
+            rcnt = int(np.sum(rps_result_count[0]))
+            pcnt = int(np.sum(rps_result_count[1]))
+            scnt = int(np.sum(rps_result_count[2]))
+            
+            print("-----")
+            print("rock", rcnt)
+            print("paper", pcnt)
+            print("scissors", scnt)
+            
+            if rcnt > 0 and pcnt > 0 and scnt > 0:
+                text = 'Tie'
+                print("tie1")
+            elif rcnt > 0 and pcnt == 0 and scnt == 0:
+                text = 'Tie'
+                print("tie2")
+            elif rcnt == 0 and pcnt > 0 and scnt == 0:
+                text = 'Tie'
+                print("tie3")
+            elif rcnt == 0 and pcnt == 0 and scnt > 0:
+                text = 'Tie'
+                print("tie4")
+            elif rcnt > 0 and scnt > 0 and pcnt == 0:
+                text = 'Rock wins'
+                print("Rock wins")
+                for i in range(0,len(rps_result)):
+                    if rps_result_count[0][i] == 1:
+                        winners.append(i)
+            elif rcnt > 0 and pcnt > 0 and scnt == 0:
+                text = 'Paper wins'
+                print("Paper wins")
+                for i in range(0,len(rps_result)):
+                    if rps_result_count[1][i] == 1:
+                        winners.append(i)
+            elif pcnt > 0 and scnt > 0 and rcnt == 0:
+                text = 'Scissors wins'
+                print("Scissors wins")
+                for i in range(0,len(rps_result)):
+                    if rps_result_count[2][i] == 1:
+                        winners.append(i)
+                        
+            print(winners)
+            print("-----")
+            
+            if winners:
+                for winner in winners:
                     cv2.putText(img, text='Winner', org=(rps_result[winner]['org'][0], rps_result[winner]['org'][1] + 70), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0, 255, 0), thickness=3)
-                cv2.putText(img, text=text, org=(int(img.shape[1] / 2), 100), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0, 0, 255), thickness=3)
-
+            cv2.putText(img, text=text, org=(int(img.shape[1] / 2), 100), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=2, color=(0, 0, 255), thickness=3)                
+            	
     cv2.imshow('Game', img)
     if cv2.waitKey(1) == ord('q'):
         break
